@@ -34,7 +34,12 @@ for FBSD_RELEASE in ${FBSD_RELEASES}; do
 done
 
 for FBSD_RELEASE in ${FBSD_RELEASES}; do
-        make -C mfsbsd iso RELEASE=${FBSD_RELEASE} MFSROOT_MAXSIZE=1G BASE=../${FBSD_RELEASE}
+        make -C mfsbsd iso \
+                RELEASE=${FBSD_RELEASE} \
+                MFSROOT_MAXSIZE=4G \
+                MFSROOT_FREE_BLOCKS="90%" \
+                MFSROOT_FREE_INODES="90%" \
+                BASE=../${FBSD_RELEASE}
 done
 
 AUTHHDR="Authorization: token $GITHUB_TOKEN"
