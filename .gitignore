@@ -1,0 +1,5 @@
+/secrets/
+*.iso
+/*-RELEASE/
+/*-STABLE/
+/*-CURRENT/
