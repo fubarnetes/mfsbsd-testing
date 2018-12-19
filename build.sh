@@ -40,6 +40,7 @@ for FBSD_RELEASE in ${FBSD_RELEASES}; do
                 MFSROOT_MAXSIZE=4g \
                 MFSROOT_FREE_BLOCKS="90%" \
                 MFSROOT_FREE_INODES="90%" \
+                PRUNELIST=../prunelist \
                 BASE=../${FBSD_RELEASE}
 done
 
