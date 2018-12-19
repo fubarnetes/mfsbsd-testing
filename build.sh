@@ -12,15 +12,18 @@ cp conf/* mfsbsd/conf/
 cat keys/*.pub >> mfsbsd/conf/authorized_keys
 
 if [ -z $GITHUB_TOKEN ]; then
-        echo "GITHUB_TOKEN not set. Exiting."
-        exit 1
+        echo "GITHUB_TOKEN not set. Only building"
 fi
 
 if [ -z $TAG ]; then
-        echo "TAG not set. Exiting."
-        exit 1
+        echo "attempting to guess current tag."
+        TAG=$(git describe --tags --exact-match 2>/dev/null)
+        echo Tag: $TAG
 fi
 
+if [ -z $TAG ]; then
+        echo "TAG not set. Only building"
+fi
 
 echo downloading distfiles...
 for FBSD_RELEASE in ${FBSD_RELEASES}; do
@@ -45,20 +48,24 @@ for FBSD_RELEASE in ${FBSD_RELEASES}; do
                 BASE=../${FBSD_RELEASE}
 done
 
-AUTHHDR="Authorization: token $GITHUB_TOKEN"
-# FIXME: check the auth hdr
+if [ ! -z $TAG ] && [ !-z $GITHUB_TOKEN ]; then
+        AUTHHDR="Authorization: token $GITHUB_TOKEN"
+        # FIXME: check the auth hdr
 
-RELEASE_ID=$(curl -s -H "${AUTHHDR}" https://api.github.com/repos/${OWNER}/${REPO}/releases | jq -r '.[]|select(.tag_name=="'${TAG}'")|.id')
-UPLOAD_URL=$(curl -s -H "${AUTHHDR}" https://api.github.com/repos/${OWNER}/${REPO}/releases/${RELEASE_ID} | jq -r '.upload_url' | cut -d'{' -f1 )
+        RELEASE_ID=$(curl -s -H "${AUTHHDR}" https://api.github.com/repos/${OWNER}/${REPO}/releases | jq -r '.[]|select(.tag_name=="'${TAG}'")|.id')
+        # FIXME: check if there is no release, and create one if necessary.
 
-echo "uploading images..."
-for FBSD_RELEASE in ${FBSD_RELEASES}; do
-        ISOFILE=mfsbsd-${FBSD_RELEASE}-${ARCH}.iso
-        UPLOAD=$(curl \
-                --progress-bar \
-                -H "${AUTHHDR}" \
-                -H "Content-Type: $(file -b --mime-type mfsbsd/${ISOFILE})" \
-                -H "Accept: application/vnd.github.manifold-preview" \
-                --data-binary @mfsbsd/${ISOFILE} \
-                "${UPLOAD_URL}?name=${ISOFILE}")
-done
+        UPLOAD_URL=$(curl -s -H "${AUTHHDR}" https://api.github.com/repos/${OWNER}/${REPO}/releases/${RELEASE_ID} | jq -r '.upload_url' | cut -d'{' -f1 )
+
+        echo "uploading images..."
+        for FBSD_RELEASE in ${FBSD_RELEASES}; do
+                ISOFILE=mfsbsd-${FBSD_RELEASE}-${ARCH}.iso
+                UPLOAD=$(curl \
+                        --progress-bar \
+                        -H "${AUTHHDR}" \
+                        -H "Content-Type: $(file -b --mime-type mfsbsd/${ISOFILE})" \
+                        -H "Accept: application/vnd.github.manifold-preview" \
+                        --data-binary @mfsbsd/${ISOFILE} \
+                        "${UPLOAD_URL}?name=${ISOFILE},label=${FBSD_RELEASE}")
+        done
+fi
